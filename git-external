@@ -1,0 +1,96 @@
+#!/bin/bash
+
+#####
+# Basic script to deal with simulating externals when using git
+# Ronan Chilvers : November 2009
+#
+# START
+#
+
+GIT=`which git`
+LN=`which ln`
+EXTERNALS_DIR="./.externals"
+
+if [ "$GIT" = "" ]; then
+    echo "Can't find the git binaries - are they installed?"
+    exit 1
+fi
+
+if [ "$LN" = "" ]; then
+    echo "Can't find the ln binary - is it installed?"
+    exit 1
+fi
+
+clone() {
+
+    ORIGIN=$1
+    TARGET=$2
+
+    echo "Pulling external from '$ORIGIN' into '$TARGET'"
+
+    if [ ! -x $EXTERNALS_DIR ]; then
+        echo "Create externals holding directory at $EXTERNALS_DIR"
+        mkdir $EXTERNALS_DIR
+    fi
+
+    if [ -x $EXTERNALS_DIR/$TARGET ]; then
+        echo "Target directory $EXTERNALS_DIR/$TARGET already exists"
+        exit 1
+    fi
+
+    echo "Cloning '$ORIGIN' to '$TARGET'"
+    $GIT clone $ORIGIN $EXTERNALS_DIR/$TARGET
+
+    if [ ! $? = 0 ]; then
+        echo "git returned non-zero exit code"
+        echo "Argh! something went wrong"
+        exit 1
+    fi
+
+    echo "Create symlink to target"
+    $LN -s $EXTERNALS_DIR/$TARGET $TARGET
+
+    if [ ! $? = 0 ]; then
+        echo "ln returned non-zero exit code"
+        echo "Argh! something went wrong"
+        exit 1
+    fi
+    
+    echo "Ignoring file in .gitignore"
+    echo $TARGET >> .gitignore
+    
+}
+
+pull() {
+    echo "Pulling latest changes for externals"
+
+    ROOT=`pwd`
+    for TARGET in `ls $EXTERNALS_DIR`; do
+        echo
+        echo "Pulling $EXTERNALS_DIR/$TARGET"
+        cd $ROOT/$EXTERNALS_DIR/$TARGET && $GIT pull origin && cd $ROOT
+    done
+
+}
+
+case $1 in
+    clone)
+        if [ $# -lt 3 ]; then
+            echo "Usage: $0 clone <origin> <target>"
+            exit 1
+        fi
+        clone $2 $3
+        ;;
+    pull)
+        pull
+        ;;
+    *)
+        echo "Usage: $0 <action> <args...>"
+        exit 1
+        ;;
+esac
+
+#
+# END
+#
+#####

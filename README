@@ -1,0 +1,6 @@
+git-external
+
+A script intended to provide a simple means of having external libraries embedded in your git repository
+but disconnected from versioning. The idea is that they may be fully maintainable git repositories in 
+their own right.
+
