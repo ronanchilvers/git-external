@@ -23,6 +23,34 @@ if [ "$LN" = "" ]; then
     exit 1
 fi
 
+list() {
+    echo "Current externals we know about:"
+    OLD_IFS=$IFS
+    IFS=$'\n'
+    for LINE in `cat $CONFIG`; do
+
+        IFS=$OLD_IFS
+        set $(echo $LINE)
+
+        echo -n "   $1 symlinked at $2 : "
+        STATUS=""
+        if [ -d "$EXTERNALS_DIR/$2" ]; then
+            STATUS="cloned"
+        else
+            STATUS="NOT cloned"
+        fi
+
+        if [ -L $2 ]; then
+            STATUS="$STATUS : symlinked"
+        else
+            STATUS="$STATUS : NOT symlinked"
+        fi
+
+        echo $STATUS
+        
+    done    
+}
+
 clone() {
     ORIGIN=$1
     TARGET=$2
@@ -124,6 +152,9 @@ case $1 in
         ;;
     init)
         init
+        ;;
+    list)
+        list
         ;;
     *)
         echo "Usage: $0 <action> <args...>"
