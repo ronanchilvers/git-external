@@ -10,6 +10,8 @@
 GIT=`which git`
 LN=`which ln`
 EXTERNALS_DIR="./.externals"
+CONFIG="./externals.conf"
+ME=$0
 
 if [ "$GIT" = "" ]; then
     echo "Can't find the git binaries - are they installed?"
@@ -22,7 +24,6 @@ if [ "$LN" = "" ]; then
 fi
 
 clone() {
-
     ORIGIN=$1
     TARGET=$2
 
@@ -55,10 +56,6 @@ clone() {
         echo "Argh! something went wrong"
         exit 1
     fi
-    
-    echo "Ignoring file in .gitignore"
-    echo $TARGET >> .gitignore
-    
 }
 
 pull() {
@@ -66,9 +63,50 @@ pull() {
 
     ROOT=`pwd`
     for TARGET in `ls $EXTERNALS_DIR`; do
-        echo
         echo "Pulling $EXTERNALS_DIR/$TARGET"
         cd $ROOT/$EXTERNALS_DIR/$TARGET && $GIT pull origin && cd $ROOT
+    done
+}
+
+ignore() {
+    LINE=$1
+}
+
+init() {
+
+    echo "Checking externals"
+
+    # Check we have the externals directory
+    if [ ! -d $EXTERNALS_DIR ]; then
+        echo "Creating externals directory"
+        mkdir $EXTERNALS_DIR
+        #ignore $EXTERNALS_DIR
+    fi
+
+    # Check that we have a config file
+    if [ ! -f $CONFIG ]; then
+        echo "Creating externals config file"
+        touch $CONFIG
+        $GIT add $CONFIG
+        # Exit here as if we have an empty config we have
+        # nothing else to do
+        exit 0
+    fi
+
+    OLD_IFS=$IFS
+    IFS=$'\n'
+    for LINE in `cat $CONFIG`; do
+
+        IFS=$OLD_IFS
+        set $(echo $LINE)
+
+        if [ ! -d $EXTERNALS_DIR/$2 ]; then
+            echo "External $2 doesn't seem to exist"
+            $ME clone $1 $2
+        else
+            echo "Found external for $1 in $2"
+        fi
+
     done
 
 }
@@ -83,6 +121,9 @@ case $1 in
         ;;
     pull)
         pull
+        ;;
+    init)
+        init
         ;;
     *)
         echo "Usage: $0 <action> <args...>"
